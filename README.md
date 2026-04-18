@@ -50,6 +50,23 @@ If you are migrating an existing NanoClaw setup or maintaining a fork, read the 
 
 For common NanoPieLot-specific deployment and runtime problems, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
+## Service Management (macOS)
+
+NanoPieLot runs as a background service via launchd. It is configured for **manual start/stop** — it won't auto-start on login.
+
+```bash
+# Start
+launchctl load ~/Library/LaunchAgents/com.nanopielot.plist
+
+# Stop
+launchctl unload ~/Library/LaunchAgents/com.nanopielot.plist
+
+# Restart
+launchctl kickstart -k gui/$(id -u)/com.nanopielot
+```
+
+After code changes, rebuild first: `npm run build`
+
 ## Architecture
 
 ```
