@@ -52,7 +52,7 @@ For common NanoPieLot-specific deployment and runtime problems, see [docs/TROUBL
 
 ## Service Management (macOS)
 
-NanoPieLot runs as a background service via launchd. It is configured for **manual start/stop** — it won't auto-start on login.
+NanoPieLot runs as a background service via launchd. It auto-starts on login and restarts if it crashes.
 
 ```bash
 # Start
