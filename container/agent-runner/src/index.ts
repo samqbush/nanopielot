@@ -365,11 +365,16 @@ export async function runQuery(
   if (sessionId) {
     const sessionMetadata = await client.getSessionMetadata(sessionId);
     if (sessionMetadata) {
-      log(`Resuming session: ${sessionId}`);
-      session = await client.resumeSession(
-        sessionId,
-        baseConfig as ResumeSessionConfig,
-      );
+      try {
+        log(`Resuming session: ${sessionId}`);
+        session = await client.resumeSession(
+          sessionId,
+          baseConfig as ResumeSessionConfig,
+        );
+      } catch (resumeErr) {
+        log(`Session resume failed (${resumeErr instanceof Error ? resumeErr.message : String(resumeErr)}), creating new session`);
+        session = await client.createSession(baseConfig as SessionConfig);
+      }
     } else {
       log(`Session not found, creating new session: ${sessionId}`);
       session = await client.createSession(baseConfig as SessionConfig);
