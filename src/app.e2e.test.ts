@@ -522,4 +522,60 @@ describe('app e2e flow', () => {
     expect(getAllSessions()).toEqual({});
     expect(getGroupModel('main')).toBe('claude-sonnet-4.5');
   });
+
+  it('passes /research messages through to the container agent', async () => {
+    runContainerAgentMock.mockImplementation(
+      async (
+        _group: RegisteredGroup,
+        _input: { prompt: string },
+        _onProcess: unknown,
+        onOutput?: (output: {
+          status: 'success' | 'error';
+          result: string | null;
+          newSessionId?: string;
+        }) => Promise<void>,
+      ) => {
+        await onOutput?.({
+          status: 'success',
+          result: 'Research report on quantum computing...',
+          newSessionId: 'session-research',
+        });
+        return {
+          status: 'success',
+          result: 'Research report on quantum computing...',
+          newSessionId: 'session-research',
+        };
+      },
+    );
+
+    const app = await startNanoPieLotApp({
+      registerSignalHandlers: false,
+      initializeDatabase: false,
+      startBackgroundLoops: false,
+    });
+
+    storeMessageDirect({
+      id: 'm-research',
+      chat_jid: 'fake:main',
+      sender: 'user-1',
+      sender_name: 'User One',
+      content: '!research quantum computing',
+      timestamp: new Date('2026-04-02T10:00:00.000Z').toISOString(),
+      is_from_me: false,
+    });
+
+    await runMessageLoopIteration();
+    await app.shutdown('research-command');
+
+    // !research should NOT be intercepted — it should reach the container agent
+    expect(runContainerAgentMock).toHaveBeenCalled();
+    const promptArg = runContainerAgentMock.mock.calls[0][1].prompt;
+    expect(promptArg).toContain('!research quantum computing');
+
+    // The agent's response should be sent back to the user
+    expect(sentMessages).toContainEqual({
+      jid: 'fake:main',
+      text: 'Research report on quantum computing...',
+    });
+  });
 });

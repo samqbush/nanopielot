@@ -448,6 +448,10 @@ async function runAgent(
         { group: group.name, error: output.error },
         'Container agent error',
       );
+      // Clear the session so retries start fresh instead of resuming a
+      // potentially stale session (e.g. "Client not connected").
+      delete sessions[group.folder];
+      clearSession(group.folder);
       return 'error';
     }
 
