@@ -559,7 +559,7 @@ describe('app e2e flow', () => {
       chat_jid: 'fake:main',
       sender: 'user-1',
       sender_name: 'User One',
-      content: '/research quantum computing',
+      content: '!research quantum computing',
       timestamp: new Date('2026-04-02T10:00:00.000Z').toISOString(),
       is_from_me: false,
     });
@@ -567,10 +567,10 @@ describe('app e2e flow', () => {
     await runMessageLoopIteration();
     await app.shutdown('research-command');
 
-    // /research should NOT be intercepted — it should reach the container agent
+    // !research should NOT be intercepted — it should reach the container agent
     expect(runContainerAgentMock).toHaveBeenCalled();
     const promptArg = runContainerAgentMock.mock.calls[0][1].prompt;
-    expect(promptArg).toContain('/research quantum computing');
+    expect(promptArg).toContain('!research quantum computing');
 
     // The agent's response should be sent back to the user
     expect(sentMessages).toContainEqual({

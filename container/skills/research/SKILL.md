@@ -1,6 +1,6 @@
 ---
 name: research
-description: Run deep research on any topic using the Copilot CLI's /research mode. Produces a detailed Markdown report with citations, code snippets, and architecture insights. Use when the user sends /research or asks for in-depth investigation of a topic.
+description: Run deep research on any topic using the Copilot CLI's /research mode. Produces a detailed Markdown report with citations, code snippets, and architecture insights. Use when the user sends !research, /research, or asks for in-depth investigation of a topic.
 allowed-tools: Bash(copilot:*)
 ---
 
@@ -9,8 +9,10 @@ allowed-tools: Bash(copilot:*)
 ## When to use
 
 Use this skill when:
-- The user's message was routed as a `/research` command
+- The user's message contains `!research <topic>` or `/research <topic>`
 - The user explicitly asks for deep research, investigation, or a detailed report on a topic
+
+Note: Slack reserves `/` commands, so Slack users should use `!research` instead of `/research`. Both formats are recognized.
 
 ## How to run
 
