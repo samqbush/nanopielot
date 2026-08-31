@@ -19,10 +19,6 @@ import {
 } from './config.js';
 import { hasCopilotToken } from './copilot-auth.js';
 import { resolveGroupFolderPath, resolveGroupIpcPath } from './group-folder.js';
-
-// Token env-file: written once at startup, read by Docker via --env-file.
-// Lives under data/ (gitignored) so the token never enters host process env.
-const COPILOT_TOKEN_ENV_FILE = path.join(DATA_DIR, 'copilot-token.env');
 import { logger } from './logger.js';
 import {
   CONTAINER_RUNTIME_BIN,
@@ -36,6 +32,38 @@ import { RegisteredGroup } from './types.js';
 // Sentinel markers for robust output parsing (must match agent-runner)
 const OUTPUT_START_MARKER = '---NANOPIELOT_OUTPUT_START---';
 const OUTPUT_END_MARKER = '---NANOPIELOT_OUTPUT_END---';
+
+// Token env-file: rewritten before each container spawn and handed to the
+// runtime via --env-file, so the token never appears in CLI args (which are
+// logged verbatim) or in the host process environment. Lives under data/,
+// which is gitignored.
+const COPILOT_TOKEN_ENV_FILE = path.join(DATA_DIR, 'copilot-token.env');
+
+/**
+ * Write the token env-file with owner-only permissions.
+ *
+ * `writeFileSync`'s `mode` is only honoured when the file is created, so an
+ * already-existing file would silently keep its previous (possibly
+ * group/world-readable) mode. chmod explicitly to close that gap.
+ */
+function writeTokenEnvFile(): void {
+  fs.mkdirSync(path.dirname(COPILOT_TOKEN_ENV_FILE), { recursive: true });
+  fs.writeFileSync(
+    COPILOT_TOKEN_ENV_FILE,
+    `COPILOT_GITHUB_TOKEN=${COPILOT_GITHUB_TOKEN}\n`,
+    { mode: 0o600 },
+  );
+  fs.chmodSync(COPILOT_TOKEN_ENV_FILE, 0o600);
+}
+
+/**
+ * Drop a token env-file left over from a previous token-auth run. Without this
+ * the secret would linger on disk after the user removes COPILOT_GITHUB_TOKEN
+ * from .env and switches back to device login.
+ */
+function removeTokenEnvFile(): void {
+  fs.rmSync(COPILOT_TOKEN_ENV_FILE, { force: true });
+}
 
 export interface ContainerInput {
   prompt: string;
@@ -215,13 +243,10 @@ function buildContainerArgs(
   // Token-based auth: pass via --env-file so the token goes directly from
   // file to container, never appearing in host process environment or CLI args.
   if (hasCopilotToken()) {
-    fs.mkdirSync(path.dirname(COPILOT_TOKEN_ENV_FILE), { recursive: true });
-    fs.writeFileSync(
-      COPILOT_TOKEN_ENV_FILE,
-      `COPILOT_GITHUB_TOKEN=${COPILOT_GITHUB_TOKEN}\n`,
-      { mode: 0o600 },
-    );
+    writeTokenEnvFile();
     args.push('--env-file', COPILOT_TOKEN_ENV_FILE);
+  } else {
+    removeTokenEnvFile();
   }
 
   // Runtime-specific args for host gateway resolution

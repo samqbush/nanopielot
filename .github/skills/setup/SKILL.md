@@ -129,6 +129,10 @@ NanoPieLot supports two authentication methods for the GitHub Copilot SDK:
 1. **Token-based (recommended):** Set `COPILOT_GITHUB_TOKEN` in `.env` with a GitHub PAT that has Copilot access. No device login needed.
 2. **Device login:** Interactive `copilot login` flow inside a container. Stores session in `data/copilot-auth/`.
 
+Scope the PAT as narrowly as your Copilot plan allows. Like the device-login
+session, the token is reachable from inside the agent container, so it should
+never be a broadly-scoped token you also use elsewhere.
+
 ### 4a. Check for token-based auth
 
 First, run the auth check:
@@ -147,11 +151,15 @@ If `LOGGED_IN=false`, AskUserQuestion: How would you like to authenticate with C
 - **GitHub token (recommended)** — "Provide a GitHub PAT with Copilot scope. More secure — you control the token's permissions."
 - **Device login** — "Interactive browser flow. Grants broad OAuth scopes beyond what NanoPieLot needs."
 
-**If token:** Ask the user (plain text, not AskUserQuestion) to provide their GitHub PAT. Then write it to `.env`:
-```bash
-echo 'COPILOT_GITHUB_TOKEN=<their-token>' >> .env
+**If token:** Do **not** ask the user to paste the PAT into the chat and do not write it with a shell command — that would put the secret into the conversation transcript and the shell history. Instead, tell the user to add the line themselves in an editor:
+
 ```
-Re-run the auth check to verify:
+COPILOT_GITHUB_TOKEN=<their-token>
+```
+
+If `.env` already contains a `COPILOT_GITHUB_TOKEN` line, they should replace it rather than append a second one, so it stays unambiguous which value is in use.
+
+Once they confirm they saved the file, re-run the auth check to verify:
 ```bash
 npx tsx setup/index.ts --step copilot-auth -- --runtime <chosen>
 ```
